@@ -33,5 +33,11 @@ def add_appointment():
         </form>
     '''
 
+import os
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Hii inachukua Port inayotolewa na Render, la sivyo inatumia 5000
+    port = int(os.environ.get("PORT", 5000))
+    # Ni lazima host iwe '0.0.0.0' ili ionekane nje ya server
+    app.run(host='0.0.0.0', port=port)
