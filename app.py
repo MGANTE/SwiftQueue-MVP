@@ -86,8 +86,7 @@
 
 # if __name__ == '__main__':
 #     port = int(os.environ.get("PORT", 5000))
-#     app.run(host='0.0.0.0', port=port)
-from flask import Flask, render_template_string, request, redirect, url_for, flash, session
+#     app.run(host='0.0.0.0', port=port)from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 import os
 import json
 
@@ -100,17 +99,18 @@ DB_FILE = 'database.json'
 def load_data():
     if os.path.exists(DB_FILE):
         with open(DB_FILE, 'r') as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
     return []
 
 def save_data(data):
     with open(DB_FILE, 'w') as f:
         json.dump(data, f)
 
-# Masaa ya kazi
 BUSINESS_HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"]
 
-# CSS na Layout nzuri uliyoipenda
 HTML_LAYOUT = '''
 <!DOCTYPE html>
 <html>
@@ -128,17 +128,27 @@ HTML_LAYOUT = '''
         th { background-color: #2c3e50; color: white; }
         .status-pill { padding: 5px 10px; border-radius: 20px; font-size: 12px; color: white; text-transform: uppercase; font-weight: bold; }
         .bg-blue { background-color: #3498db; } .bg-green { background-color: #2ecc71; } .bg-red { background-color: #e74c3c; }
-        .btn { padding: 6px 12px; border-radius: 5px; text-decoration: none; color: white; font-size: 12px; display: inline-block; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        button { background-color: #2c3e50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
+        .btn { padding: 6px 12px; border-radius: 5px; text-decoration: none; color: white; font-size: 12px; display: inline-block; border: none; cursor: pointer; }
+        input[type="text"], input[type="password"] { padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div class="nav">
-        <a href="/public">📅 Book Appointment</a> | 
-        {% if session.get('admin') %}<a href="/admin">👨‍⚕️ Admin Dashboard</a> | <a href="/logout">Logout</a>{% else %}<a href="/login">Admin Login</a>{% endif %}
+        <a href="/public">📅 Weka Miadi</a> | 
+        {% if session.get('admin') %}
+            <a href="/admin">👨‍⚕️ Dashboard</a> | <a href="/logout">Logout</a>
+        {% else %}
+            <a href="/login">Admin Login</a>
+        {% endif %}
     </div>
     <div class="container">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div style="color: red; margin-bottom: 10px; text-align: center;">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
         {{ content | safe }}
     </div>
 </body>
@@ -158,10 +168,10 @@ def login():
         flash("Username au Password si sahihi!")
     content = '''
         <h2>Admin Login</h2>
-        <form method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Ingia Kwenye Mfumo</button>
+        <form method="POST" style="text-align: center;">
+            <input type="text" name="username" placeholder="Username" required><br><br>
+            <input type="password" name="password" placeholder="Password" required><br><br>
+            <button type="submit" class="btn bg-blue" style="width: 200px;">Ingia</button>
         </form>
     '''
     return render_template_string(HTML_LAYOUT, title="Login", content=content)
@@ -196,8 +206,7 @@ def admin_dashboard():
                 <a href="/update/{i}/missed" class="btn bg-red">Missed</a>
                 <a href="/delete/{i}" style="color:red; margin-left:10px; font-size:10px;">Delete</a>
             </td>
-        </tr>
-        '''
+        </tr>'''
     
     content = f'''
         <h2>👨‍⚕️ Admin Dashboard</h2>
@@ -209,8 +218,7 @@ def admin_dashboard():
         <table>
             <tr><th>Mteja</th><th>Muda</th><th>Hali</th><th>Action</th></tr>
             {rows if rows else '<tr><td colspan="4" style="text-align:center;">Hakuna miadi kwa sasa.</td></tr>'}
-        </table>
-    '''
+        </table>'''
     return render_template_string(HTML_LAYOUT, title="Admin", content=content)
 
 @app.route('/public', methods=['GET', 'POST'])
@@ -225,6 +233,7 @@ def public_view():
             appointments.append({'name': name, 'time': time, 'status': 'pending'})
             appointments.sort(key=lambda x: x['time'])
             save_data(appointments)
+            flash(f"Hongera {name}! Miadi yako ya saa {time} imepokelewa.")
             return redirect(url_for('public_view'))
 
     booked_times = [a['time'] for a in appointments]
@@ -235,36 +244,35 @@ def public_view():
         form = f'''
             <form method="POST" style="display:inline;">
                 <input type="hidden" name="time" value="{hour}">
-                <input type="text" name="name" placeholder="Jina lako" required style="width:100px; padding:4px;">
-                <button type="submit" class="btn bg-blue" style="width:auto; cursor:pointer;">Book</button>
-            </form>
-        ''' if not is_booked else ""
+                <input type="text" name="name" placeholder="Jina lako" required style="width:120px;">
+                <button type="submit" class="btn bg-blue">Book</button>
+            </form>''' if not is_booked else ""
         rows += f'<tr><td>{hour}</td><td>{status_text}</td><td>{form}</td></tr>'
 
     content = f'''
-        <h2>📅 Ratiba ya Miadi ya Leo</h2>
-        <p style="text-align:center; font-size:12px; color:gray;">Privacy: Majina ya wengine yamefichwa.</p>
+        <h2>📅 Ratiba ya Leo</h2>
         <table>
             <tr><th>Saa</th><th>Hali</th><th>Panga Miadi</th></tr>
             {rows}
-        </table>
-    '''
-    return render_template_string(HTML_LAYOUT, title="Public Booking", content=content)
+        </table>'''
+    return render_template_string(HTML_LAYOUT, title="Public", content=content)
 
 @app.route('/update/<int:id>/<status>')
 def update(id, status):
     if not session.get('admin'): return redirect(url_for('login'))
     appointments = load_data()
-    appointments[id]['status'] = status
-    save_data(appointments)
+    if id < len(appointments):
+        appointments[id]['status'] = status
+        save_data(appointments)
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/delete/<int:id>')
 def delete(id):
     if not session.get('admin'): return redirect(url_for('login'))
     appointments = load_data()
-    appointments.pop(id)
-    save_data(appointments)
+    if id < len(appointments):
+        appointments.pop(id)
+        save_data(appointments)
     return redirect(url_for('admin_dashboard'))
 
 if __name__ == '__main__':
