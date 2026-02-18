@@ -76,7 +76,7 @@ def home():
     content = '''
         <div style="text-align: center;">
             <h1>SwiftQueue </h1>
-            <p style="font-size: 1.2em; color: #555;">Sema basi kwa misururu na "Double Booking"!</p>
+            <p style="font-size: 1.2em; color: #555;">"Muda wako ni dhahabu. Panga miadi, okoa muda!"</p>
             
             <div style="text-align: left; margin: 30px 0;">
                 <h3>Why SwiftQueue? </h3>
